@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Engineering College Recommender — JEE · BITS · KCET</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg:#0f1117; --card:#1a1d27; --card2:#21253a; --border:#2e3348;
+      --accent:#6c63ff; --accent2:#00d4aa; --text:#e8eaf6; --muted:#8892b0;
+      --danger:#ff6584; --warn:#ffc857; --gold:#ffd700; --green:#4caf87; --orange:#fd7c47;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+    header{background:linear-gradient(135deg,#1a1d27,#12142b);border-bottom:1px solid var(--border);padding:20px 32px;display:flex;align-items:center;gap:14px;}
+    header .logo{width:42px;height:42px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+    header h1{font-size:1.35rem;font-weight:700;}
+    header p{font-size:0.78rem;color:var(--muted);margin-top:2px;}
+    .container{max-width:1160px;margin:0 auto;padding:24px 18px;}
+
+    /* Form card */
+    .form-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:22px;}
+    .card-title{font-size:0.95rem;color:var(--accent2);margin-bottom:16px;display:flex;align-items:center;gap:7px;}
+    .exam-sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:18px;}
+    .exam-block{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:15px;position:relative;}
+    .exam-label{font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 9px;border-radius:5px;display:inline-block;margin-bottom:12px;}
+    .lbl-jee{background:rgba(108,99,255,.18);color:#a09cff;}
+    .lbl-bits{background:rgba(253,124,71,.18);color:#fd9c71;}
+    .lbl-kcet{background:rgba(0,212,170,.18);color:var(--accent2);}
+    .opt-badge{position:absolute;top:13px;right:13px;font-size:0.63rem;padding:2px 7px;border-radius:4px;background:rgba(136,146,176,.12);color:var(--muted);}
+    .field{margin-bottom:11px;}
+    .field:last-child{margin-bottom:0;}
+    .field label{display:block;font-size:0.73rem;color:var(--muted);margin-bottom:4px;}
+    .field input,.field select{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.87rem;outline:none;transition:border-color .2s;}
+    .field input:focus,.field select:focus{border-color:var(--accent);}
+    .field select option{background:#1a1d27;}
+    .field .hint{font-size:0.68rem;color:var(--muted);margin-top:3px;}
+    .field input.error{border-color:var(--danger)!important;}
+
+    /* Interests */
+    .interests-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;}
+    .interest-chip{padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.79rem;transition:all .18s;}
+    .interest-chip.active{border-color:var(--accent);background:rgba(108,99,255,.15);color:var(--text);}
+
+    /* Weightage */
+    .weightage-section{margin-top:18px;}
+    .weightage-hint{font-size:0.72rem;color:var(--muted);margin-bottom:10px;}
+    .weightage-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center;user-select:none;}
+    .w-chip{
+      display:flex;align-items:center;gap:6px;
+      padding:7px 14px;border-radius:10px;border:1.5px solid var(--border);
+      background:var(--card2);cursor:grab;font-size:0.82rem;font-weight:600;
+      transition:box-shadow .15s,transform .15s;
+    }
+    .w-chip:active{cursor:grabbing;}
+    .w-chip.dragging{opacity:.4;transform:scale(.95);}
+    .w-chip.drag-over{border-color:var(--accent2);box-shadow:0 0 0 2px rgba(0,212,170,.3);}
+    .w-chip .w-num{font-size:0.65rem;background:rgba(255,255,255,.1);border-radius:4px;padding:1px 5px;color:var(--muted);}
+    .w-chip[data-type="IIT"]  {border-color:rgba(255,215,0,.4);color:var(--gold);}
+    .w-chip[data-type="NIT"]  {border-color:rgba(0,212,170,.4);color:var(--accent2);}
+    .w-chip[data-type="IIIT"] {border-color:rgba(160,156,255,.4);color:#a09cff;}
+    .w-chip[data-type="BITS"] {border-color:rgba(253,124,71,.4);color:var(--orange);}
+    .w-chip[data-type="State"]{border-color:rgba(116,185,255,.4);color:#74b9ff;}
+    .w-chip[data-type="TopPrivate"]{border-color:rgba(136,146,176,.4);color:var(--muted);}
+    .w-chip[data-type="KCET"]{border-color:rgba(76,175,135,.4);color:var(--green);}
+    .w-drag-hint{font-size:0.7rem;color:var(--muted);margin-top:7px;opacity:.7;}
+
+    /* Buttons */
+    .btn-row{display:flex;gap:11px;margin-top:20px;flex-wrap:wrap;align-items:center;}
+    .btn{padding:10px 24px;border-radius:10px;border:none;cursor:pointer;font-size:0.88rem;font-weight:600;transition:all .2s;}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#8b85ff);color:#fff;}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(108,99,255,.4);}
+    .btn-secondary{background:var(--card2);color:var(--muted);border:1px solid var(--border);}
+    .btn-secondary:hover{color:var(--text);}
+
+    /* Results */
+    #results{display:none;}
+    .section-label{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:11px;}
+    .branch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:11px;margin-bottom:26px;}
+    .branch-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:15px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;}
+    .branch-card:hover{transform:translateY(-2px);box-shadow:0 5px 18px rgba(0,0,0,.3);}
+    .branch-card .top-bar{position:absolute;top:0;left:0;height:3px;}
+    .branch-card h3{font-size:0.87rem;font-weight:700;margin-bottom:3px;}
+    .branch-card .match{font-size:0.7rem;margin-bottom:6px;}
+    .branch-card p{font-size:0.74rem;color:var(--muted);line-height:1.5;}
+    .branch-card .scope{font-size:0.7rem;color:var(--accent2);margin-top:6px;}
+    .branch-card .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+    .branch-card .tag{font-size:0.63rem;padding:2px 6px;border-radius:4px;background:var(--card2);color:var(--muted);}
+
+    .results-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:11px;margin-bottom:14px;}
+    .results-title{font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:8px;}
+    .badge{font-size:0.68rem;padding:3px 10px;border-radius:20px;background:rgba(108,99,255,.2);color:var(--accent);font-weight:600;}
+    .controls{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+    .filter-btn{padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:0.74rem;transition:all .15s;}
+    .filter-btn.active{border-color:var(--accent2);color:var(--accent2);background:rgba(0,212,170,.1);}
+    .toggle-dream{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.74rem;color:var(--muted);user-select:none;}
+    .toggle-dream input[type=checkbox]{accent-color:var(--accent);width:13px;height:13px;cursor:pointer;}
+
+    .summary-strip{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px;}
+    .stat-pill{padding:6px 14px;border-radius:9px;font-size:0.78rem;font-weight:600;border:1px solid;}
+
+    .table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
+    table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+    thead tr{background:var(--card2);}
+    thead th{padding:10px 13px;text-align:left;color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);white-space:nowrap;}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .12s;}
+    tbody tr:last-child{border-bottom:none;}
+    tbody tr:hover{background:var(--card2);}
+    tbody td{padding:9px 13px;vertical-align:middle;}
+
+    .type-badge{font-size:0.66rem;font-weight:700;padding:2px 7px;border-radius:4px;display:inline-block;white-space:nowrap;}
+    .t-IIT{background:rgba(255,215,0,.12);color:var(--gold);}
+    .t-NIT{background:rgba(0,212,170,.12);color:var(--accent2);}
+    .t-IIIT{background:rgba(108,99,255,.12);color:#a09cff;}
+    .t-BITS{background:rgba(253,124,71,.12);color:var(--orange);}
+    .t-KCET{background:rgba(76,175,135,.12);color:var(--green);}
+    .t-State{background:rgba(116,185,255,.12);color:#74b9ff;}
+    .t-TopPrivate{background:rgba(136,146,176,.12);color:var(--muted);}
+
+    .exam-src{font-size:0.63rem;padding:2px 6px;border-radius:4px;display:inline-block;}
+    .s-jee{background:rgba(108,99,255,.1);color:#a09cff;}
+    .s-bits{background:rgba(253,124,71,.1);color:var(--orange);}
+    .s-kcet{background:rgba(0,212,170,.1);color:var(--accent2);}
+
+    .chance-pill{padding:3px 8px;border-radius:20px;font-size:0.68rem;font-weight:600;white-space:nowrap;display:inline-block;}
+    .c-safe{background:rgba(76,175,135,.15);color:var(--green);}
+    .c-good{background:rgba(108,99,255,.15);color:#a09cff;}
+    .c-reach{background:rgba(255,200,87,.15);color:var(--warn);}
+    .c-dream{background:rgba(255,101,132,.12);color:var(--danger);}
+
+    .empty{text-align:center;padding:40px 20px;color:var(--muted);}
+    .tip-box{background:rgba(108,99,255,.07);border:1px solid rgba(108,99,255,.2);border-radius:10px;padding:12px 15px;margin-top:15px;font-size:0.78rem;color:var(--muted);line-height:1.7;}
+    .tip-box strong{color:var(--accent2);}
+    /* Tier filter */
+    .tier-row{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;}
+    .tier-grp-lbl{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+    .tier-chip{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.8rem;padding:4px 0;color:var(--text);}
+    .tier-chip input[type=checkbox]{cursor:pointer;width:13px;height:13px;}
+    .tier-note{font-size:0.67rem;color:var(--muted);margin-left:2px;}
+    .t1-chip input{accent-color:var(--gold);}
+    .t2-chip input{accent-color:var(--accent2);}
+    .t3-chip input{accent-color:var(--muted);}
+    /* Tier badges in table */
+    .tbadge{font-size:.62rem;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:4px;}
+    .tb1{background:rgba(255,215,0,.15);color:var(--gold);}
+    .tb2{background:rgba(0,212,170,.12);color:var(--accent2);}
+    .tb3{background:rgba(136,146,176,.12);color:var(--muted);}
+
+    ::-webkit-scrollbar{width:5px;height:5px;}
+    ::-webkit-scrollbar-track{background:var(--bg);}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">🎓</div>
+  <div>
+    <h1>Engineering College Recommender</h1>
+    <p>JEE Main · JEE Advanced · BITSAT · KCET — Top 200 colleges, personalised ranking</p>
+  </div>
+</header>
+
+<div class="container">
+<div class="form-card">
+  <div class="card-title">📋 Your Scores <span style="font-size:.75rem;color:var(--muted);font-weight:400">(fill whichever exams apply)</span></div>
+
+  <div class="exam-sections">
+    <div class="exam-block">
+      <div class="exam-label lbl-jee">JEE Main / Advanced</div>
+      <div class="field"><label>JEE Main Rank (CRL) <span style="color:var(--danger);font-size:0.7rem">★ Required for IIT / NIT / IIIT results</span></label><input type="number" id="rank" placeholder="e.g. 12000" min="1" max="1200000"/></div>
+      <div class="field"><label>JEE Advanced Rank <span style="color:var(--muted)">(optional)</span></label><input type="number" id="advRank" placeholder="e.g. 3500" min="1" max="50000"/></div>
+      <div class="field"><label>Category</label>
+        <select id="category">
+          <option value="OPEN">General (OPEN)</option><option value="OBC">OBC-NCL</option>
+          <option value="SC">SC</option><option value="ST">ST</option><option value="EWS">EWS</option>
+        </select>
+      </div>
+      <div class="field"><label>Home State</label>
+        <select id="state">
+          <option value="">-- Select --</option>
+          <option>Andhra Pradesh</option><option>Assam</option><option>Bihar</option><option>Chandigarh</option>
+          <option>Delhi</option><option>Goa</option><option>Gujarat</option><option>Haryana</option>
+          <option>Himachal Pradesh</option><option>Jharkhand</option><option>Karnataka</option>
+          <option>Kerala</option><option>Madhya Pradesh</option><option>Maharashtra</option>
+          <option>Odisha</option><option>Punjab</option><option>Rajasthan</option>
+          <option>Tamil Nadu</option><option>Telangana</option><option>Uttar Pradesh</option>
+          <option>Uttarakhand</option><option>West Bengal</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Gender</label>
+        <select id="gender">
+          <option value="gender-neutral">Gender Neutral</option>
+          <option value="female">Female (supernumerary seats)</option>
+        </select>
+      </div>
+      <div class="field"><label>NIT Quota <span style="color:var(--muted)">(select one or both)</span></label>
+        <div style="display:flex;gap:12px;margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.83rem;">
+            <input type="checkbox" id="quotaOS" checked onchange=""> Other State (OS)
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.83rem;">
+            <input type="checkbox" id="quotaHS" onchange=""> Home State (HS)
+          </label>
+        </div>
+        <div class="hint">HS quota cutoffs are ~1.35× more relaxed · applies only when college is in your home state</div>
+      </div>
+    </div>
+    <div class="exam-block">
+      <div class="exam-label lbl-bits">BITSAT</div>
+      <div class="opt-badge">Optional</div>
+      <div class="field"><label>BITSAT Score</label><input type="number" id="bitsatScore" placeholder="e.g. 345" min="50" max="400"/></div>
+      <div class="hint" style="padding:0 0 8px">Out of 400 · No category reservations at BITS</div>
+    </div>
+    <div class="exam-block">
+      <div class="exam-label lbl-kcet">KCET (Karnataka)</div>
+      <div class="opt-badge">Optional</div>
+      <div class="field"><label>KCET Rank</label><input type="number" id="kcetRank" placeholder="e.g. 5000" min="1" max="300000"/></div>
+      <div class="field"><label>KCET Category</label>
+        <select id="kcetCategory">
+          <option value="GM">General Merit (GM)</option><option value="2A">Category 2A (OBC)</option>
+          <option value="SC">SC</option><option value="ST">ST</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interests -->
+  <div class="field">
+    <label>Interests & Strengths <span style="color:var(--muted)">(select all that apply)</span></label>
+    <div class="interests-wrap" id="interests">
+      <button class="interest-chip" data-val="cs">💻 Computers & Coding</button>
+      <button class="interest-chip" data-val="ai">🤖 AI / Data Science</button>
+      <button class="interest-chip" data-val="electronics">📡 Electronics & Circuits</button>
+      <button class="interest-chip" data-val="mechanical">⚙️ Machines & Manufacturing</button>
+      <button class="interest-chip" data-val="civil">🏗️ Infrastructure</button>
+      <button class="interest-chip" data-val="chemical">🧪 Chemistry & Processes</button>
+      <button class="interest-chip" data-val="electrical">⚡ Power & Energy</button>
+      <button class="interest-chip" data-val="bio">🧬 Biotech / Healthcare</button>
+      <button class="interest-chip" data-val="space">🚀 Aerospace & Defense</button>
+      <button class="interest-chip" data-val="math">📐 Math / Physics</button>
+      <button class="interest-chip" data-val="env">🌱 Environment</button>
+    </div>
+  </div>
+
+  <!-- Weightage -->
+  <div class="weightage-section">
+    <div class="card-title" style="margin-bottom:6px;">⚖️ College Type Priority <span style="font-size:.75rem;color:var(--muted);font-weight:400">(drag to reorder — #1 = highest preference)</span></div>
+    <div class="weightage-list" id="weightageList">
+      <div class="w-chip" draggable="true" data-type="IIT"><span class="w-num">1</span>🏅 IIT</div>
+      <div class="w-chip" draggable="true" data-type="NIT"><span class="w-num">2</span>🏫 NIT</div>
+      <div class="w-chip" draggable="true" data-type="IIIT"><span class="w-num">3</span>💡 IIIT</div>
+      <div class="w-chip" draggable="true" data-type="BITS"><span class="w-num">4</span>🔬 BITS</div>
+      <div class="w-chip" draggable="true" data-type="State"><span class="w-num">5</span>🏛️ State/Govt</div>
+      <div class="w-chip" draggable="true" data-type="TopPrivate"><span class="w-num">6</span>🎓 Top Private</div>
+      <div class="w-chip" draggable="true" data-type="KCET"><span class="w-num">7</span>🌿 KCET</div>
+    </div>
+    <div class="w-drag-hint">↕ Drag to reorder — results re-sort instantly. #1 type always appears first; chance shown as a label only.</div>
+  </div>
+
+  <!-- Tier filter -->
+  <div style="margin-top:18px;">
+    <div class="card-title" style="margin-bottom:8px;">🏅 College Tier Selection <span style="font-size:.75rem;color:var(--muted);font-weight:400">(choose which tiers to include)</span></div>
+    <div id="tierFilter" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;">
+      <div class="tier-row" data-grp="iit">
+        <span class="tier-grp-lbl" style="color:var(--gold)">🏅 IIT</span>
+        <label class="tier-chip t1-chip"><input type="checkbox" data-grp="iit" data-tier="1" checked> Tier 1 <span class="tier-note">Bombay, Delhi, Madras, Kanpur, KGP, Roorkee, Guwahati</span></label>
+        <label class="tier-chip t2-chip"><input type="checkbox" data-grp="iit" data-tier="2" checked> Tier 2 <span class="tier-note">Hyderabad, BHU, Indore, Jodhpur, Patna, ISM …</span></label>
+        <label class="tier-chip t3-chip"><input type="checkbox" data-grp="iit" data-tier="3" checked> Tier 3 <span class="tier-note">Palakkad, Jammu, Bhilai, Dharwad, IIT Goa …</span></label>
+      </div>
+      <div class="tier-row" data-grp="nit">
+        <span class="tier-grp-lbl" style="color:var(--accent2)">🏫 NIT</span>
+        <label class="tier-chip t1-chip"><input type="checkbox" data-grp="nit" data-tier="1" checked> Tier 1 <span class="tier-note">Trichy, Warangal, Surathkal, Calicut, Rourkela</span></label>
+        <label class="tier-chip t2-chip"><input type="checkbox" data-grp="nit" data-tier="2" checked> Tier 2 <span class="tier-note">MNIT Jaipur, VNIT, MNNIT, Kurukshetra, SVNIT …</span></label>
+        <label class="tier-chip t3-chip"><input type="checkbox" data-grp="nit" data-tier="3" checked> Tier 3 <span class="tier-note">NIT Patna, Goa, Puducherry, AP, NE states …</span></label>
+      </div>
+      <div class="tier-row" data-grp="iiit">
+        <span class="tier-grp-lbl" style="color:#a09cff">💡 IIIT</span>
+        <label class="tier-chip t1-chip"><input type="checkbox" data-grp="iiit" data-tier="1" checked> Tier 1 <span class="tier-note">IIIT Hyderabad, Bangalore, Delhi</span></label>
+        <label class="tier-chip t2-chip"><input type="checkbox" data-grp="iiit" data-tier="2" checked> Tier 2 <span class="tier-note">Allahabad, Chennai, Vadodara, Lucknow, Pune …</span></label>
+        <label class="tier-chip t3-chip"><input type="checkbox" data-grp="iiit" data-tier="3" checked> Tier 3 <span class="tier-note">Nagpur, Kurnool, Kalyani, Ranchi, Sonepat …</span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Program type preference -->
+  <div style="margin-top:16px;">
+    <div class="card-title" style="margin-bottom:8px;">🎓 Program Type Preference</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.83rem;padding:8px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--card2);">
+        <input type="radio" name="progType" value="be" checked style="accent-color:var(--accent)"> B.E. / B.Tech only
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.83rem;padding:8px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--card2);">
+        <input type="radio" name="progType" value="both" style="accent-color:var(--accent)"> B.E. + M.Sc. Integrated
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.83rem;padding:8px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--card2);">
+        <input type="radio" name="progType" value="msc" style="accent-color:var(--accent)"> M.Sc. Integrated preferred
+      </label>
+    </div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-top:6px;">M.Sc. Integrated (5-yr) at BITS has lower score cutoffs than B.E. — useful if your BITSAT score is moderate. Dual Degree (B.E. + M.Sc.) is also possible at BITS.</div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="recommend()">🔍 Show My Options</button>
+    <button class="btn btn-secondary" onclick="resetForm()">✕ Clear</button>
+  </div>
+</div>
+
+<!-- Results -->
+<div id="results">
+  <div id="jeeNotice" style="display:none;background:rgba(255,101,132,.08);border:1px solid rgba(255,101,132,.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:0.82rem;color:var(--danger);">
+    ⚠️ <strong>JEE Main rank not entered</strong> — IIT, NIT, and IIIT results are not shown. Enter your JEE Main rank (CRL) in the form above to see those options.
+  </div>
+  <div class="section-label">RECOMMENDED BRANCHES</div>
+  <div class="branch-grid" id="branchGrid"></div>
+
+  <div class="results-header">
+    <div class="results-title">
+      🏛️ Colleges Within Reach <span class="badge" id="collegeCount"></span>
+      <button onclick="downloadExcel()" style="margin-left:10px;padding:5px 14px;border-radius:8px;border:1.5px solid rgba(0,212,170,.4);background:rgba(0,212,170,.08);color:var(--accent2);cursor:pointer;font-size:0.76rem;font-weight:600;">⬇️ Download Excel</button>
+    </div>
+    <div class="controls">
+      <button class="filter-btn active" data-tier="all" onclick="filterTier(this)">All</button>
+      <button class="filter-btn" data-tier="IIT" onclick="filterTier(this)">IITs</button>
+      <button class="filter-btn" data-tier="NIT" onclick="filterTier(this)">NITs</button>
+      <button class="filter-btn" data-tier="IIIT" onclick="filterTier(this)">IIITs</button>
+      <button class="filter-btn" data-tier="BITS" onclick="filterTier(this)">BITS</button>
+      <button class="filter-btn" data-tier="State" onclick="filterTier(this)">State/Govt</button>
+      <button class="filter-btn" data-tier="TopPrivate" onclick="filterTier(this)">Top Private</button>
+      <button class="filter-btn" data-tier="KCET" onclick="filterTier(this)">KCET</button>
+      <div style="display:flex;align-items:center;gap:6px;border-left:1px solid var(--border);padding-left:10px;">
+        <span style="font-size:0.72rem;color:var(--muted)">Show:</span>
+        <label class="toggle-dream"><input type="checkbox" class="chance-filter" value="safe"  checked onchange="applyFilters()"> <span style="color:var(--green)">✅ Safe</span></label>
+        <label class="toggle-dream"><input type="checkbox" class="chance-filter" value="good"  checked onchange="applyFilters()"> <span style="color:#a09cff">🎯 Good</span></label>
+        <label class="toggle-dream"><input type="checkbox" class="chance-filter" value="reach" checked onchange="applyFilters()"> <span style="color:var(--warn)">⚡ Reach</span></label>
+        <label class="toggle-dream"><input type="checkbox" class="chance-filter" value="dream" checked onchange="applyFilters()"> <span style="color:var(--danger)">🔴 Dream</span></label>
+      </div>
+    </div>
+  </div>
+  <div class="summary-strip" id="summaryStrip"></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>College</th><th>Type</th><th>Via</th><th>Program</th><th>Branch</th><th>Cutoff</th><th>Chance</th></tr></thead>
+      <tbody id="collegeTable"></tbody>
+    </table>
+  </div>
+  <div class="tip-box" id="tipBox"></div>
+</div>
+</div>
+
+<script>
+// ─── Branch data ──────────────────────────────────────────────────────────────
+const BRANCH_DATA = [
+  {id:"cs",   name:"Computer Science & Engineering (CSE)",  match:["cs","ai","math"],              desc:"Core programming, algorithms, software systems.",           scope:"Excellent — 15–40 LPA avg at top colleges",  tags:["Software","AI/ML","Product","Startups"],    color:"#6c63ff"},
+  {id:"ai",   name:"AI & Data Science / CSE (AI)",         match:["ai","cs","math","business"],   desc:"ML, deep learning, data engineering — fastest growing.",     scope:"Excellent — booming demand",                 tags:["ML Engg","Data Sci","Research","Analytics"], color:"#00d4aa"},
+  {id:"ece",  name:"Electronics & Communication (ECE)",    match:["electronics","cs","space","math"],desc:"Circuits, VLSI, signal processing, communication.",        scope:"Very Good — semiconductor boom",              tags:["VLSI","Embedded","Telecom","IoT"],           color:"#ffc857"},
+  {id:"eee",  name:"Electrical Engineering (EEE / EE)",   match:["electrical","mechanical","math","env"],desc:"Power systems, drives, renewable energy.",            scope:"Good — PSU & renewable demand",               tags:["Power","PSU","Renewable","Automation"],      color:"#ff9f43"},
+  {id:"mech", name:"Mechanical Engineering",              match:["mechanical","space","math","electrical"],desc:"Design, thermodynamics, manufacturing, robotics.",   scope:"Good — EV & robotics growth",                 tags:["Automobile","Aerospace","Mfg","R&D"],        color:"#a29bfe"},
+  {id:"civil",name:"Civil Engineering",                   match:["civil","env","math"],           desc:"Structures, transport, water, geotechnics.",                scope:"Steady — infra push",                         tags:["PSU","Infra","UPSC","Urban Planning"],       color:"#74b9ff"},
+  {id:"chem", name:"Chemical Engineering",                match:["chemical","env","bio","math"],  desc:"Process design, petrochemicals, pharma.",                   scope:"Moderate — niche but stable",                 tags:["Petrochem","Pharma","PSU","Process"],        color:"#fd79a8"},
+  {id:"biotech",name:"Biotechnology / Bioinformatics",   match:["bio","chemical","cs","env"],    desc:"Biology + engineering. Pharma, genomics, bioinformatics.",  scope:"Niche but growing — PhD popular",             tags:["Pharma","Research","Genomics","Healthcare"], color:"#55efc4"},
+  {id:"aero", name:"Aerospace Engineering",              match:["space","mechanical","math","electrical"],desc:"Aerodynamics, propulsion, spacecraft design.",       scope:"Niche & prestigious — ISRO/private",          tags:["ISRO","Defence","Airlines","R&D"],           color:"#fdcb6e"},
+  {id:"meta", name:"Metallurgy & Materials Science",     match:["chemical","mechanical","math"], desc:"Alloys, nanomaterials, semiconductor fabrication.",          scope:"Steady — semiconductor industry",             tags:["Steel","Semiconductors","Nano","PSU"],       color:"#e17055"},
+  {id:"mining",name:"Mining Engineering",               match:["civil","env","mechanical"],     desc:"Extraction, mine safety, rock mechanics. High PSU pay.",      scope:"Steady — high PSU salaries",                  tags:["PSU","Coal India","NMDC","Core"],            color:"#b2bec3"},
+  {id:"math",     name:"B.E. Mathematics & Computing (BITS)",   match:["math","cs","ai"],         desc:"B.E. in Maths & Computing at BITS — strong for software, quant finance, data science. Often paired as a dual degree.",  scope:"Excellent — BITS-specific, high demand",     tags:["BITS","Quant","Research","Dual Degree"],    color:"#e84393"},
+  {id:"eei",      name:"B.E. Electronics & Instrumentation",    match:["electronics","math","mechanical"], desc:"Embedded systems, control, instrumentation and signal processing. Available at BITS campuses.",  scope:"Good — IoT, control systems, embedded",      tags:["BITS","Embedded","Control","IoT"],           color:"#fd9c71"},
+  // ── BITS M.Sc. Integrated (5-year) ──
+  {id:"msc_math", name:"M.Sc. Mathematics (Integrated, BITS)",  match:["math","cs","ai"],         desc:"5-yr integrated MSc at BITS. Strong for quant finance, research, and CS transition via dual degree.", scope:"BITS only — lower cutoff than B.E.", tags:["BITS","Quant","Research","Dual Degree"],  color:"#e84393", mscOnly:true},
+  {id:"msc_phys", name:"M.Sc. Physics (Integrated, BITS)",      match:["math","space","electronics"], desc:"5-yr integrated MSc in Physics. Often paired with B.E. as a dual degree.", scope:"BITS only — lower cutoff than B.E.", tags:["BITS","Research","Optics","Dual Degree"],  color:"#74b9ff", mscOnly:true},
+  {id:"msc_chem", name:"M.Sc. Chemistry (Integrated, BITS)",    match:["chemical","env","bio"],    desc:"5-yr integrated MSc in Chemistry. Often paired with Chem Engg dual degree.", scope:"BITS only — lower cutoff than B.E.", tags:["BITS","Pharma","Research","Dual Degree"],  color:"#fd79a8", mscOnly:true},
+  {id:"msc_eco",  name:"M.Sc. Economics (Integrated, BITS)",    match:["business","math","ai"],    desc:"5-yr integrated MSc in Economics. Strong for finance, consulting, and policy roles.", scope:"BITS only — moderate cutoff",        tags:["BITS","Finance","Consulting","Policy"],    color:"#ffc857", mscOnly:true},
+  {id:"msc_bio",  name:"M.Sc. Biological Sciences (Integrated, BITS)", match:["bio","chemical","env"], desc:"5-yr integrated MSc in Biological Sciences. Path into pharma, biotech, and research.", scope:"BITS only — most accessible cutoff", tags:["BITS","Pharma","Biotech","Research"],      color:"#55efc4", mscOnly:true},
+];
+
+// ─── Category multipliers (JEE) ───────────────────────────────────────────────
+const CAT_MULT = {OPEN:1.0,EWS:1.1,OBC:1.8,SC:4.0,ST:8.0};
+
+// ─── JEE Colleges (~130 entries) ─────────────────────────────────────────────
+const JEE_COLLEGES = [
+  // ── IITs (23) ──
+  {name:"IIT Bombay",           type:"IIT",state:"Maharashtra",  branches:[{id:"cs",rank:63},{id:"ai",rank:300},{id:"ece",rank:300},{id:"eee",rank:900},{id:"mech",rank:1200},{id:"chem",rank:2500},{id:"aero",rank:1600},{id:"meta",rank:4500}]},
+  {name:"IIT Delhi",            type:"IIT",state:"Delhi",        branches:[{id:"cs",rank:100},{id:"ece",rank:500},{id:"eee",rank:800},{id:"mech",rank:1500},{id:"chem",rank:2200},{id:"civil",rank:2800},{id:"ai",rank:350},{id:"meta",rank:5000}]},
+  {name:"IIT Madras",           type:"IIT",state:"Tamil Nadu",   branches:[{id:"cs",rank:120},{id:"ece",rank:550},{id:"eee",rank:1000},{id:"mech",rank:1600},{id:"aero",rank:2000},{id:"meta",rank:5500},{id:"chem",rank:3000},{id:"civil",rank:3500}]},
+  {name:"IIT Kanpur",           type:"IIT",state:"Uttar Pradesh",branches:[{id:"cs",rank:130},{id:"ece",rank:600},{id:"eee",rank:1100},{id:"mech",rank:1700},{id:"chem",rank:2800},{id:"aero",rank:2200},{id:"math",rank:2000},{id:"civil",rank:3800}]},
+  {name:"IIT Kharagpur",        type:"IIT",state:"West Bengal",  branches:[{id:"cs",rank:200},{id:"ece",rank:700},{id:"eee",rank:1200},{id:"mech",rank:2000},{id:"civil",rank:3500},{id:"aero",rank:2500},{id:"meta",rank:6000},{id:"mining",rank:8000},{id:"chem",rank:3200}]},
+  {name:"IIT Roorkee",          type:"IIT",state:"Uttarakhand",  branches:[{id:"cs",rank:300},{id:"ece",rank:1000},{id:"eee",rank:1800},{id:"mech",rank:2800},{id:"civil",rank:4000},{id:"chem",rank:4500},{id:"meta",rank:7000},{id:"mining",rank:9000}]},
+  {name:"IIT Guwahati",         type:"IIT",state:"Assam",        branches:[{id:"cs",rank:500},{id:"ece",rank:1500},{id:"eee",rank:2500},{id:"mech",rank:3500},{id:"civil",rank:5000},{id:"chem",rank:6000},{id:"biotech",rank:7000}]},
+  {name:"IIT Hyderabad",        type:"IIT",state:"Telangana",    branches:[{id:"cs",rank:600},{id:"ai",rank:700},{id:"ece",rank:1800},{id:"eee",rank:3000},{id:"mech",rank:4000},{id:"chem",rank:6500}]},
+  {name:"IIT BHU (Varanasi)",   type:"IIT",state:"Uttar Pradesh",branches:[{id:"cs",rank:700},{id:"ece",rank:2000},{id:"eee",rank:3200},{id:"mech",rank:4500},{id:"civil",rank:6000},{id:"chem",rank:7000},{id:"meta",rank:8500},{id:"mining",rank:11000}]},
+  {name:"IIT Indore",           type:"IIT",state:"Madhya Pradesh",branches:[{id:"cs",rank:800},{id:"ece",rank:2200},{id:"eee",rank:3800},{id:"mech",rank:5000},{id:"civil",rank:7000}]},
+  {name:"IIT Gandhinagar",      type:"IIT",state:"Gujarat",      branches:[{id:"cs",rank:900},{id:"ece",rank:2500},{id:"mech",rank:5500},{id:"chem",rank:8000},{id:"civil",rank:8000}]},
+  {name:"IIT Jodhpur",          type:"IIT",state:"Rajasthan",    branches:[{id:"cs",rank:1000},{id:"ece",rank:2800},{id:"eee",rank:5000},{id:"mech",rank:6000},{id:"ai",rank:1200}]},
+  {name:"IIT Patna",            type:"IIT",state:"Bihar",        branches:[{id:"cs",rank:1200},{id:"ece",rank:3200},{id:"eee",rank:5500},{id:"mech",rank:7000},{id:"civil",rank:9000}]},
+  {name:"IIT Tirupati",         type:"IIT",state:"Andhra Pradesh",branches:[{id:"cs",rank:1500},{id:"ece",rank:4000},{id:"mech",rank:8000},{id:"civil",rank:10000}]},
+  {name:"IIT Dhanbad (ISM)",    type:"IIT",state:"Jharkhand",    branches:[{id:"cs",rank:1800},{id:"ece",rank:5000},{id:"mech",rank:9000},{id:"mining",rank:12000},{id:"chem",rank:10000}]},
+  {name:"IIT Ropar",            type:"IIT",state:"Punjab",       branches:[{id:"cs",rank:2000},{id:"ece",rank:5500},{id:"eee",rank:9000},{id:"mech",rank:12000},{id:"civil",rank:15000}]},
+  {name:"IIT Mandi",            type:"IIT",state:"Himachal Pradesh",branches:[{id:"cs",rank:2500},{id:"ece",rank:6500},{id:"eee",rank:10000},{id:"mech",rank:14000},{id:"civil",rank:18000}]},
+  {name:"IIT Palakkad",         type:"IIT",state:"Kerala",       branches:[{id:"cs",rank:3000},{id:"ece",rank:7500},{id:"mech",rank:15000},{id:"civil",rank:20000}]},
+  {name:"IIT Jammu",            type:"IIT",state:"Jammu & Kashmir",branches:[{id:"cs",rank:3500},{id:"ece",rank:8500},{id:"mech",rank:16000},{id:"civil",rank:22000}]},
+  {name:"IIT Bhilai",           type:"IIT",state:"Chhattisgarh", branches:[{id:"cs",rank:4000},{id:"ece",rank:9500},{id:"eee",rank:16000},{id:"mech",rank:18000}]},
+  {name:"IIT Dharwad",          type:"IIT",state:"Karnataka",    branches:[{id:"cs",rank:4500},{id:"ece",rank:10000},{id:"mech",rank:20000}]},
+  {name:"IIT Goa",              type:"IIT",state:"Goa",          branches:[{id:"cs",rank:5000},{id:"ece",rank:11000},{id:"mech",rank:22000}]},
+  {name:"IIT Bombay (Dual)",    type:"IIT",state:"Maharashtra",  branches:[{id:"math",rank:1500},{id:"aero",rank:1800},{id:"meta",rank:3500}]},
+
+  // ── NITs (31) ──
+  {name:"NIT Trichy",           type:"NIT",state:"Tamil Nadu",   branches:[{id:"cs",rank:3500},{id:"ece",rank:6000},{id:"eee",rank:9000},{id:"mech",rank:12000},{id:"civil",rank:16000},{id:"chem",rank:18000},{id:"biotech",rank:33000}]},
+  {name:"NIT Warangal",         type:"NIT",state:"Telangana",    branches:[{id:"cs",rank:4000},{id:"ece",rank:7000},{id:"eee",rank:11000},{id:"mech",rank:14000},{id:"civil",rank:18000},{id:"meta",rank:25000},{id:"biotech",rank:38000}]},
+  {name:"NIT Surathkal (NITK)", type:"NIT",state:"Karnataka",    branches:[{id:"cs",rank:4500},{id:"ece",rank:8000},{id:"eee",rank:12000},{id:"mech",rank:16000},{id:"civil",rank:20000},{id:"chem",rank:22000}]},
+  {name:"NIT Calicut",          type:"NIT",state:"Kerala",       branches:[{id:"cs",rank:5500},{id:"ece",rank:9500},{id:"eee",rank:14000},{id:"mech",rank:18000},{id:"civil",rank:22000},{id:"biotech",rank:36000}]},
+  {name:"NIT Rourkela",         type:"NIT",state:"Odisha",       branches:[{id:"cs",rank:6000},{id:"ece",rank:11000},{id:"eee",rank:16000},{id:"mech",rank:20000},{id:"civil",rank:25000},{id:"meta",rank:35000},{id:"biotech",rank:44000}]},
+  {name:"MNIT Jaipur",          type:"NIT",state:"Rajasthan",    branches:[{id:"cs",rank:6500},{id:"ece",rank:12000},{id:"eee",rank:18000},{id:"mech",rank:22000},{id:"civil",rank:28000}]},
+  {name:"NIT Allahabad (MNNIT)",type:"NIT",state:"Uttar Pradesh",branches:[{id:"cs",rank:7000},{id:"ece",rank:13000},{id:"eee",rank:19000},{id:"mech",rank:24000},{id:"civil",rank:30000}]},
+  {name:"VNIT Nagpur",          type:"NIT",state:"Maharashtra",  branches:[{id:"cs",rank:8000},{id:"ece",rank:14000},{id:"eee",rank:20000},{id:"mech",rank:25000},{id:"civil",rank:32000}]},
+  {name:"NIT Kurukshetra",      type:"NIT",state:"Haryana",      branches:[{id:"cs",rank:9000},{id:"ece",rank:16000},{id:"eee",rank:22000},{id:"mech",rank:28000},{id:"civil",rank:35000}]},
+  {name:"SVNIT Surat",          type:"NIT",state:"Gujarat",      branches:[{id:"cs",rank:10000},{id:"ece",rank:18000},{id:"eee",rank:26000},{id:"mech",rank:32000},{id:"civil",rank:40000},{id:"chem",rank:45000}]},
+  {name:"MANIT Bhopal",         type:"NIT",state:"Madhya Pradesh",branches:[{id:"cs",rank:11000},{id:"ece",rank:20000},{id:"eee",rank:28000},{id:"mech",rank:34000},{id:"civil",rank:42000}]},
+  {name:"NIT Delhi",            type:"NIT",state:"Delhi",        branches:[{id:"cs",rank:12000},{id:"ece",rank:21000},{id:"eee",rank:30000},{id:"mech",rank:38000},{id:"civil",rank:48000}]},
+  {name:"NIT Hamirpur",         type:"NIT",state:"Himachal Pradesh",branches:[{id:"cs",rank:13000},{id:"ece",rank:23000},{id:"eee",rank:33000},{id:"mech",rank:40000},{id:"civil",rank:50000}]},
+  {name:"NIT Silchar",          type:"NIT",state:"Assam",        branches:[{id:"cs",rank:14000},{id:"ece",rank:25000},{id:"eee",rank:35000},{id:"mech",rank:42000},{id:"civil",rank:52000},{id:"biotech",rank:55000}]},
+  {name:"NIT Durgapur",         type:"NIT",state:"West Bengal",  branches:[{id:"cs",rank:15000},{id:"ece",rank:26000},{id:"eee",rank:36000},{id:"mech",rank:44000},{id:"civil",rank:55000}]},
+  {name:"NIT Jamshedpur",       type:"NIT",state:"Jharkhand",    branches:[{id:"cs",rank:17000},{id:"ece",rank:29000},{id:"eee",rank:40000},{id:"mech",rank:48000},{id:"civil",rank:60000},{id:"meta",rank:70000}]},
+  {name:"NIT Patna",            type:"NIT",state:"Bihar",        branches:[{id:"cs",rank:18000},{id:"ece",rank:30000},{id:"eee",rank:42000},{id:"mech",rank:52000},{id:"civil",rank:65000}]},
+  {name:"NIT Raipur",           type:"NIT",state:"Chhattisgarh", branches:[{id:"cs",rank:16000},{id:"ece",rank:28000},{id:"eee",rank:38000},{id:"mech",rank:46000},{id:"civil",rank:58000}]},
+  {name:"NIT Srinagar (J&K)",   type:"NIT",state:"Jammu & Kashmir",branches:[{id:"cs",rank:20000},{id:"ece",rank:35000},{id:"eee",rank:50000},{id:"mech",rank:60000},{id:"civil",rank:75000}]},
+  {name:"NIT Goa",              type:"NIT",state:"Goa",          branches:[{id:"cs",rank:20000},{id:"ece",rank:35000},{id:"eee",rank:50000},{id:"mech",rank:60000}]},
+  {name:"NIT Puducherry",       type:"NIT",state:"Tamil Nadu",   branches:[{id:"cs",rank:22000},{id:"ece",rank:38000},{id:"eee",rank:52000},{id:"mech",rank:62000}]},
+  {name:"NIT AP (Tadepalligudem)",type:"NIT",state:"Andhra Pradesh",branches:[{id:"cs",rank:23000},{id:"ece",rank:40000},{id:"eee",rank:55000},{id:"mech",rank:65000},{id:"civil",rank:80000}]},
+  {name:"NIT Uttarakhand",      type:"NIT",state:"Uttarakhand",  branches:[{id:"cs",rank:25000},{id:"ece",rank:42000},{id:"eee",rank:58000},{id:"mech",rank:68000}]},
+  {name:"NIT Agartala",         type:"NIT",state:"Tripura",      branches:[{id:"cs",rank:24000},{id:"ece",rank:40000},{id:"eee",rank:55000},{id:"mech",rank:65000},{id:"civil",rank:80000}]},
+  {name:"NIT Manipur",          type:"NIT",state:"Manipur",      branches:[{id:"cs",rank:30000},{id:"ece",rank:50000},{id:"mech",rank:72000}]},
+  {name:"NIT Sikkim",           type:"NIT",state:"Sikkim",       branches:[{id:"cs",rank:35000},{id:"ece",rank:55000},{id:"mech",rank:78000}]},
+  {name:"NIT Meghalaya",        type:"NIT",state:"Meghalaya",    branches:[{id:"cs",rank:38000},{id:"ece",rank:60000}]},
+  {name:"NIT Mizoram",          type:"NIT",state:"Mizoram",      branches:[{id:"cs",rank:40000},{id:"ece",rank:65000}]},
+  {name:"NIT Nagaland",         type:"NIT",state:"Nagaland",     branches:[{id:"cs",rank:42000},{id:"ece",rank:68000}]},
+  {name:"NIT Arunachal Pradesh",type:"NIT",state:"Arunachal Pradesh",branches:[{id:"cs",rank:44000},{id:"ece",rank:70000}]},
+
+  // ── IIITs (20) ──
+  {name:"IIIT Hyderabad",       type:"IIIT",state:"Telangana",    branches:[{id:"cs",rank:1800},{id:"ece",rank:5000},{id:"ai",rank:2200}]},
+  {name:"IIIT Bangalore (IIITB)",type:"IIIT",state:"Karnataka",   branches:[{id:"cs",rank:3000},{id:"ece",rank:7000},{id:"ai",rank:3500}]},
+  {name:"IIIT Delhi (IIIT-D)",  type:"IIIT",state:"Delhi",        branches:[{id:"cs",rank:3500},{id:"ece",rank:7500},{id:"ai",rank:4000},{id:"biotech",rank:12000}]},
+  {name:"IIIT Allahabad",       type:"IIIT",state:"Uttar Pradesh",branches:[{id:"cs",rank:4000},{id:"ece",rank:9000},{id:"eee",rank:18000}]},
+  {name:"IIIT Chennai",         type:"IIIT",state:"Tamil Nadu",   branches:[{id:"cs",rank:6000},{id:"ece",rank:14000}]},
+  {name:"IIIT Vadodara",        type:"IIIT",state:"Gujarat",      branches:[{id:"cs",rank:7000},{id:"ece",rank:16000}]},
+  {name:"IIIT Lucknow",         type:"IIIT",state:"Uttar Pradesh",branches:[{id:"cs",rank:9000},{id:"ece",rank:20000}]},
+  {name:"IIIT Sri City",        type:"IIIT",state:"Andhra Pradesh",branches:[{id:"cs",rank:12000},{id:"ece",rank:25000}]},
+  {name:"IIIT Bhopal",          type:"IIIT",state:"Madhya Pradesh",branches:[{id:"cs",rank:15000},{id:"ece",rank:30000}]},
+  {name:"IIIT Dharwad",         type:"IIIT",state:"Karnataka",    branches:[{id:"cs",rank:11000},{id:"ece",rank:24000}]},
+  {name:"IIIT Nagpur",          type:"IIIT",state:"Maharashtra",  branches:[{id:"cs",rank:14000},{id:"ece",rank:28000}]},
+  {name:"IIIT Kurnool",         type:"IIIT",state:"Andhra Pradesh",branches:[{id:"cs",rank:13000},{id:"ece",rank:27000}]},
+  {name:"IIIT Kalyani",         type:"IIIT",state:"West Bengal",  branches:[{id:"cs",rank:16000},{id:"ece",rank:30000}]},
+  {name:"IIIT Ranchi",          type:"IIIT",state:"Jharkhand",    branches:[{id:"cs",rank:18000},{id:"ece",rank:34000}]},
+  {name:"IIIT Pune",            type:"IIIT",state:"Maharashtra",  branches:[{id:"cs",rank:8000},{id:"ece",rank:18000}]},
+  {name:"IIIT Kota",            type:"IIIT",state:"Rajasthan",    branches:[{id:"cs",rank:10000},{id:"ece",rank:22000}]},
+  {name:"IIIT Guwahati",        type:"IIIT",state:"Assam",        branches:[{id:"cs",rank:12000},{id:"ece",rank:25000}]},
+  {name:"IIIT Sonepat",         type:"IIIT",state:"Haryana",      branches:[{id:"cs",rank:20000},{id:"ece",rank:38000}]},
+  {name:"IIIT Una",             type:"IIIT",state:"Himachal Pradesh",branches:[{id:"cs",rank:22000},{id:"ece",rank:40000}]},
+  {name:"IIIT Bhagalpur",       type:"IIIT",state:"Bihar",        branches:[{id:"cs",rank:25000},{id:"ece",rank:45000}]},
+
+  // ── BITS (JEE-rank equivalents — shown when no BITSAT score entered; for reference only) ──
+  // Based on 2025-26 official BITSAT cutoffs mapped to approximate JEE Main rank ranges
+  {name:"BITS Pilani (Pilani Campus)",   type:"BITS",state:"Rajasthan",  branches:[{id:"cs",rank:700},{id:"math",rank:1200},{id:"ece",rank:1600},{id:"eee",rank:3500},{id:"mech",rank:6500},{id:"chem",rank:14000},{id:"civil",rank:16000}]},
+  {name:"BITS Pilani (Goa Campus)",      type:"BITS",state:"Goa",        branches:[{id:"cs",rank:1800},{id:"math",rank:2200},{id:"ece",rank:3000},{id:"eee",rank:5500},{id:"mech",rank:9000},{id:"chem",rank:16000}]},
+  {name:"BITS Pilani (Hyderabad Campus)",type:"BITS",state:"Telangana",  branches:[{id:"cs",rank:2200},{id:"math",rank:2600},{id:"ece",rank:3500},{id:"eee",rank:6500},{id:"mech",rank:11000},{id:"chem",rank:17000},{id:"civil",rank:18000}]},
+
+  // ── State / Govt colleges ──
+  {name:"DTU Delhi",            type:"State",state:"Delhi",       branches:[{id:"cs",rank:1500},{id:"ece",rank:3500},{id:"eee",rank:6000},{id:"mech",rank:8000},{id:"civil",rank:12000}]},
+  {name:"NSUT Delhi",           type:"State",state:"Delhi",       branches:[{id:"cs",rank:3000},{id:"ece",rank:6000},{id:"eee",rank:10000},{id:"mech",rank:14000}]},
+  {name:"Jadavpur University",  type:"State",state:"West Bengal", branches:[{id:"cs",rank:8000},{id:"ece",rank:15000},{id:"eee",rank:20000},{id:"mech",rank:28000},{id:"civil",rank:38000}]},
+  {name:"COEP Pune",            type:"State",state:"Maharashtra", branches:[{id:"cs",rank:12000},{id:"ece",rank:22000},{id:"mech",rank:35000},{id:"civil",rank:45000}]},
+  {name:"PEC Chandigarh",       type:"State",state:"Chandigarh",  branches:[{id:"cs",rank:15000},{id:"ece",rank:28000},{id:"eee",rank:40000},{id:"mech",rank:50000}]},
+  {name:"DAIICT Gandhinagar",   type:"State",state:"Gujarat",     branches:[{id:"cs",rank:8000},{id:"ece",rank:18000}]},
+  {name:"BIT Mesra (Ranchi)",   type:"State",state:"Jharkhand",   branches:[{id:"cs",rank:20000},{id:"ece",rank:35000},{id:"eee",rank:48000},{id:"mech",rank:58000}]},
+  {name:"Anna University (CEG)",type:"State",state:"Tamil Nadu",  branches:[{id:"cs",rank:15000},{id:"ece",rank:28000},{id:"eee",rank:40000},{id:"mech",rank:55000},{id:"civil",rank:70000}]},
+  {name:"PSG College of Technology",type:"State",state:"Tamil Nadu",branches:[{id:"cs",rank:18000},{id:"ece",rank:30000},{id:"mech",rank:48000}]},
+  {name:"IIIT Bhubaneswar",     type:"State",state:"Odisha",      branches:[{id:"cs",rank:20000},{id:"ece",rank:36000}]},
+  {name:"Nirma University",     type:"State",state:"Gujarat",     branches:[{id:"cs",rank:25000},{id:"ece",rank:40000},{id:"eee",rank:55000},{id:"mech",rank:65000}]},
+
+  // ── Top Private ──
+  {name:"Thapar University",    type:"TopPrivate",state:"Punjab",  branches:[{id:"cs",rank:5000},{id:"ece",rank:10000},{id:"eee",rank:15000},{id:"mech",rank:20000}]},
+  {name:"Shiv Nadar University",type:"TopPrivate",state:"Uttar Pradesh",branches:[{id:"cs",rank:10000},{id:"ece",rank:20000},{id:"mech",rank:35000}]},
+  {name:"VIT Vellore",          type:"TopPrivate",state:"Tamil Nadu",branches:[{id:"cs",rank:10000},{id:"ece",rank:20000},{id:"eee",rank:30000},{id:"mech",rank:40000},{id:"civil",rank:55000}]},
+  {name:"VIT Chennai",          type:"TopPrivate",state:"Tamil Nadu",branches:[{id:"cs",rank:25000},{id:"ece",rank:40000},{id:"mech",rank:60000}]},
+  {name:"VIT AP",               type:"TopPrivate",state:"Andhra Pradesh",branches:[{id:"cs",rank:30000},{id:"ece",rank:48000},{id:"mech",rank:70000}]},
+  {name:"VIT Bhopal",           type:"TopPrivate",state:"Madhya Pradesh",branches:[{id:"cs",rank:35000},{id:"ece",rank:55000}]},
+  {name:"Manipal Institute of Technology",type:"TopPrivate",state:"Karnataka",branches:[{id:"cs",rank:15000},{id:"ece",rank:28000},{id:"mech",rank:45000},{id:"civil",rank:60000}]},
+  {name:"Amrita Coimbatore",    type:"TopPrivate",state:"Tamil Nadu",branches:[{id:"cs",rank:12000},{id:"ece",rank:22000},{id:"eee",rank:35000},{id:"mech",rank:48000}]},
+  {name:"Amrita Bangalore",     type:"TopPrivate",state:"Karnataka",branches:[{id:"cs",rank:15000},{id:"ece",rank:26000},{id:"mech",rank:50000}]},
+  {name:"Amrita Chennai",       type:"TopPrivate",state:"Tamil Nadu",branches:[{id:"cs",rank:18000},{id:"ece",rank:30000},{id:"mech",rank:55000}]},
+  {name:"KIIT Bhubaneswar",     type:"TopPrivate",state:"Odisha",  branches:[{id:"cs",rank:20000},{id:"ece",rank:35000},{id:"mech",rank:55000},{id:"civil",rank:70000}]},
+  {name:"SASTRA University",    type:"TopPrivate",state:"Tamil Nadu",branches:[{id:"cs",rank:20000},{id:"ece",rank:35000},{id:"mech",rank:55000}]},
+  {name:"SRM Kattankulathur",   type:"TopPrivate",state:"Tamil Nadu",branches:[{id:"cs",rank:20000},{id:"ece",rank:35000},{id:"mech",rank:55000}]},
+  {name:"SRM AP",               type:"TopPrivate",state:"Andhra Pradesh",branches:[{id:"cs",rank:30000},{id:"ece",rank:50000}]},
+  {name:"Symbiosis Institute of Technology",type:"TopPrivate",state:"Maharashtra",branches:[{id:"cs",rank:20000},{id:"ece",rank:35000},{id:"mech",rank:50000}]},
+  {name:"Chandigarh University",type:"TopPrivate",state:"Punjab",  branches:[{id:"cs",rank:40000},{id:"ece",rank:65000},{id:"mech",rank:90000}]},
+  {name:"Lovely Professional University",type:"TopPrivate",state:"Punjab",branches:[{id:"cs",rank:50000},{id:"ece",rank:80000}]},
+  {name:"PES University (Bangalore)",type:"TopPrivate",state:"Karnataka",branches:[{id:"cs",rank:20000},{id:"ece",rank:38000}]},
+  {name:"Christ University",    type:"TopPrivate",state:"Karnataka",branches:[{id:"cs",rank:30000},{id:"ece",rank:55000}]},
+];
+
+// ─── BITS data — Official 2025-26 cutoffs (out of 390) ───────────────────────
+// Source: admissions.bits-pilani.ac.in / competishun.com (official BITS data)
+// prog: "BE" = B.E. degree, "MSc" = Integrated M.Sc. (5-year)
+const BITS_COLLEGES = [
+  {name:"BITS Pilani (Pilani Campus)", type:"BITS", state:"Rajasthan", branches:[
+    // B.E. programmes
+    {id:"cs",      score:304, prog:"BE", label:"B.E. Computer Science"},
+    {id:"math",    score:295, prog:"BE", label:"B.E. Mathematics & Computing"},
+    {id:"ece",     score:285, prog:"BE", label:"B.E. Electronics & Communication"},
+    {id:"eee",     score:260, prog:"BE", label:"B.E. Electrical & Electronics"},
+    {id:"eei",     score:250, prog:"BE", label:"B.E. Electronics & Instrumentation"},
+    {id:"mech",    score:235, prog:"BE", label:"B.E. Mechanical"},
+    {id:"chem",    score:210, prog:"BE", label:"B.E. Chemical"},
+    {id:"civil",   score:206, prog:"BE", label:"B.E. Civil"},
+    // M.Sc. Integrated
+    {id:"msc_eco", score:251, prog:"MSc", label:"M.Sc. Economics (Integrated)"},
+    {id:"msc_math",score:229, prog:"MSc", label:"M.Sc. Mathematics (Integrated)"},
+    {id:"msc_phys",score:223, prog:"MSc", label:"M.Sc. Physics (Integrated)"},
+    {id:"msc_chem",score:212, prog:"MSc", label:"M.Sc. Chemistry (Integrated)"},
+    {id:"msc_bio", score:208, prog:"MSc", label:"M.Sc. Biological Sciences (Integrated)"},
+  ]},
+  {name:"BITS Pilani (Goa Campus)", type:"BITS", state:"Goa", branches:[
+    // B.E. programmes
+    {id:"cs",      score:274, prog:"BE", label:"B.E. Computer Science"},
+    {id:"math",    score:268, prog:"BE", label:"B.E. Mathematics & Computing"},
+    {id:"ece",     score:255, prog:"BE", label:"B.E. Electronics & Communication"},
+    {id:"eee",     score:243, prog:"BE", label:"B.E. Electrical & Electronics"},
+    {id:"eei",     score:234, prog:"BE", label:"B.E. Electronics & Instrumentation"},
+    {id:"mech",    score:223, prog:"BE", label:"B.E. Mechanical"},
+    {id:"chem",    score:206, prog:"BE", label:"B.E. Chemical"},
+    // M.Sc. Integrated
+    {id:"msc_eco", score:237, prog:"MSc", label:"M.Sc. Economics (Integrated)"},
+    {id:"msc_math",score:216, prog:"MSc", label:"M.Sc. Mathematics (Integrated)"},
+    {id:"msc_phys",score:212, prog:"MSc", label:"M.Sc. Physics (Integrated)"},
+    {id:"msc_chem",score:205, prog:"MSc", label:"M.Sc. Chemistry (Integrated)"},
+    {id:"msc_bio", score:203, prog:"MSc", label:"M.Sc. Biological Sciences (Integrated)"},
+  ]},
+  {name:"BITS Pilani (Hyderabad Campus)", type:"BITS", state:"Telangana", branches:[
+    // B.E. programmes
+    {id:"cs",      score:270, prog:"BE", label:"B.E. Computer Science"},
+    {id:"math",    score:266, prog:"BE", label:"B.E. Mathematics & Computing"},
+    {id:"ece",     score:256, prog:"BE", label:"B.E. Electronics & Communication"},
+    {id:"eee",     score:239, prog:"BE", label:"B.E. Electrical & Electronics"},
+    {id:"eei",     score:232, prog:"BE", label:"B.E. Electronics & Instrumentation"},
+    {id:"mech",    score:214, prog:"BE", label:"B.E. Mechanical"},
+    {id:"chem",    score:205, prog:"BE", label:"B.E. Chemical"},
+    {id:"civil",   score:203, prog:"BE", label:"B.E. Civil"},
+    // M.Sc. Integrated
+    {id:"msc_eco", score:231, prog:"MSc", label:"M.Sc. Economics (Integrated)"},
+    {id:"msc_math",score:212, prog:"MSc", label:"M.Sc. Mathematics (Integrated)"},
+    {id:"msc_phys",score:209, prog:"MSc", label:"M.Sc. Physics (Integrated)"},
+    {id:"msc_chem",score:203, prog:"MSc", label:"M.Sc. Chemistry (Integrated)"},
+    {id:"msc_bio", score:203, prog:"MSc", label:"M.Sc. Biological Sciences (Integrated)"},
+  ]},
+];
+
+// ─── KCET data ────────────────────────────────────────────────────────────────
+const KCET_CAT_MULT = {GM:1.0,"2A":1.5,SC:3.0,ST:5.0};
+const KCET_COLLEGES = [
+  {name:"RV College of Engineering (RVCE)",     type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:400},{id:"ece",rank:1800},{id:"eee",rank:4000},{id:"mech",rank:6000},{id:"civil",rank:12000},{id:"chem",rank:18000}]},
+  {name:"BMS College of Engineering (BMSCE)",   type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:900},{id:"ece",rank:3000},{id:"eee",rank:6000},{id:"mech",rank:9000},{id:"civil",rank:15000}]},
+  {name:"MS Ramaiah Institute of Tech (MSRIT)", type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:1200},{id:"ece",rank:4000},{id:"eee",rank:7500},{id:"mech",rank:11000},{id:"civil",rank:18000}]},
+  {name:"PES University (KCET quota)",          type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:1800},{id:"ece",rank:5000},{id:"ai",rank:2200},{id:"eee",rank:10000},{id:"mech",rank:14000}]},
+  {name:"BMS Institute of Technology (BMSIT)",  type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:2500},{id:"ece",rank:6500},{id:"eee",rank:12000},{id:"mech",rank:16000},{id:"civil",rank:25000}]},
+  {name:"JSS Science & Technology University",  type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:3000},{id:"ece",rank:8000},{id:"eee",rank:14000},{id:"mech",rank:18000},{id:"civil",rank:28000}]},
+  {name:"Dayananda Sagar College of Engg",      type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:4000},{id:"ece",rank:10000},{id:"eee",rank:18000},{id:"mech",rank:22000}]},
+  {name:"Sir M Visvesvaraya IT (MVIT)",         type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:5000},{id:"ece",rank:12000},{id:"eee",rank:20000},{id:"mech",rank:26000}]},
+  {name:"NIE Institute of Technology (Mysore)", type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:6000},{id:"ece",rank:14000},{id:"eee",rank:22000},{id:"mech",rank:28000},{id:"civil",rank:38000}]},
+  {name:"KLE Technological University",         type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:7000},{id:"ece",rank:16000},{id:"eee",rank:26000},{id:"mech",rank:32000},{id:"civil",rank:45000}]},
+  {name:"Siddaganga Institute of Technology",   type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:8000},{id:"ece",rank:18000},{id:"eee",rank:28000},{id:"mech",rank:35000},{id:"civil",rank:50000}]},
+  {name:"Nitte Meenakshi Institute of Tech",    type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:10000},{id:"ece",rank:22000},{id:"eee",rank:32000},{id:"mech",rank:40000}]},
+  {name:"CMR Institute of Technology",          type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:12000},{id:"ece",rank:25000},{id:"eee",rank:38000},{id:"mech",rank:45000}]},
+  {name:"Vidyavardhaka College of Engg",        type:"KCET",state:"Karnataka",branches:[{id:"cs",rank:14000},{id:"ece",rank:28000},{id:"mech",rank:48000},{id:"civil",rank:60000}]},
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const chanceOrder = {safe:0,good:1,reach:2,dream:3};
+function rankChance(my, close) {
+  const r = my / close;
+  if (r < 0.7)  return "safe";
+  if (r < 0.92) return "good";
+  if (r < 1.12) return "reach";
+  return "dream";
+}
+function bitsChance(my, cut) {
+  const d = my - cut;
+  if (d >= 12)  return "safe";
+  if (d >= 2)   return "good";
+  if (d >= -15) return "reach";
+  return "dream";
+}
+
+// ─── Weightage drag-and-drop ──────────────────────────────────────────────────
+let weightageOrder = ["IIT","NIT","IIIT","BITS","State","TopPrivate","KCET"];
+let _dragSrc = null;
+
+function initDrag() {
+  const list = document.getElementById("weightageList");
+
+  list.addEventListener("dragstart", e => {
+    _dragSrc = e.target.closest(".w-chip");
+    if (!_dragSrc) return;
+    _dragSrc.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", ""); // required for Firefox
+  });
+
+  list.addEventListener("dragover", e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    // Only highlight the target chip — no DOM reordering here
+    list.querySelectorAll(".w-chip").forEach(c => c.classList.remove("drag-over"));
+    const target = e.target.closest(".w-chip");
+    if (target && target !== _dragSrc) target.classList.add("drag-over");
+  });
+
+  list.addEventListener("dragleave", e => {
+    // Only remove drag-over if we're leaving the list entirely
+    if (!list.contains(e.relatedTarget)) {
+      list.querySelectorAll(".w-chip").forEach(c => c.classList.remove("drag-over"));
+    }
+  });
+
+  // Reorder happens ONCE on drop — not during dragover
+  list.addEventListener("drop", e => {
+    e.preventDefault();
+    const target = e.target.closest(".w-chip");
+    if (!target || !_dragSrc || target === _dragSrc) return;
+    const chips = [...list.querySelectorAll(".w-chip")];
+    const srcIdx = chips.indexOf(_dragSrc);
+    const tgtIdx = chips.indexOf(target);
+    if (srcIdx < tgtIdx) list.insertBefore(_dragSrc, target.nextSibling);
+    else                  list.insertBefore(_dragSrc, target);
+  });
+
+  list.addEventListener("dragend", () => {
+    list.querySelectorAll(".w-chip").forEach(c => c.classList.remove("dragging", "drag-over"));
+    updateWeightageNumbers();
+    if (allRows.length) applyFilters();
+  });
+}
+
+function updateWeightageNumbers() {
+  const chips = [...document.querySelectorAll(".w-chip")];
+  weightageOrder = chips.map(c => c.dataset.type);
+  chips.forEach((c, i) => { c.querySelector(".w-num").textContent = i + 1; });
+}
+
+function typeWeight(type) {
+  const idx = weightageOrder.indexOf(type);
+  return idx === -1 ? 99 : idx;
+}
+
+// ─── Interests ────────────────────────────────────────────────────────────────
+let activeInterests = new Set();
+let allRows = [];
+let lastFilteredRows = [];
+let currentTier = "all";
+
+document.querySelectorAll(".interest-chip").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const v = btn.dataset.val;
+    activeInterests.has(v) ? (activeInterests.delete(v), btn.classList.remove("active"))
+                           : (activeInterests.add(v),    btn.classList.add("active"));
+  });
+});
+
+// ─── Recommend ────────────────────────────────────────────────────────────────
+function recommend() {
+  const jeeRank     = parseInt(document.getElementById("rank").value)        || 0;
+  const bitsatScore = parseInt(document.getElementById("bitsatScore").value) || 0;
+  const kcetRank    = parseInt(document.getElementById("kcetRank").value)    || 0;
+
+  if (!jeeRank && !bitsatScore && !kcetRank) {
+    ["rank","bitsatScore","kcetRank"].forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.add("error");
+      setTimeout(() => el.classList.remove("error"), 2000);
+    });
+    return;
+  }
+
+  const advRank   = parseInt(document.getElementById("advRank").value) || 0;
+  const jeeCat    = document.getElementById("category").value;
+  const homeState = document.getElementById("state").value;
+  const gender    = document.getElementById("gender").value;
+  const wantOS    = document.getElementById("quotaOS").checked;
+  const wantHS    = document.getElementById("quotaHS").checked;
+  const kcetCat   = document.getElementById("kcetCategory").value;
+  const interests = [...activeInterests];
+  const progPref  = document.querySelector('input[name="progType"]:checked').value;
+
+  // Build list of quotas to apply for NITs
+  // HS only applies when college state === homeState; OS always applies
+  function nitQuotasForCollege(colState) {
+    const quotas = [];
+    if (wantOS) quotas.push("OS");
+    if (wantHS && homeState && colState === homeState) quotas.push("HS");
+    if (!quotas.length) quotas.push("OS"); // fallback
+    return quotas;
+  }
+  function nitCloseRank(baseRank, quota) {
+    let r = Math.round(baseRank * CAT_MULT[jeeCat]);
+    if (quota === "HS") r = Math.round(r * 1.35);
+    if (gender === "female") r = Math.round(r * 1.2);
+    return r;
+  }
+
+  // Score branches — filter MSc branches based on program preference
+  const branchScores = BRANCH_DATA
+    .filter(b => {
+      if (b.mscOnly && progPref === "be")   return false; // hide MSc if BE only
+      if (!b.mscOnly && progPref === "msc") return false; // hide BE if MSc preferred
+      return true;
+    })
+    .map(b => {
+      let score = interests.length === 0 ? 50 : 0;
+      interests.forEach(i => { if (b.match.includes(i)) score += 100 / b.match.length; });
+      // Boost MSc branches slightly when msc preference
+      if (b.mscOnly && progPref === "msc") score *= 1.2;
+      return {...b, score: Math.min(100, Math.round(score))};
+    }).filter(b => b.score > 0 || interests.length === 0)
+      .sort((a,z) => z.score - a.score)
+      .slice(0, interests.length === 0 ? 6 : 8);
+
+  const topIds = new Set(branchScores.map(b => b.id));
+  allRows = [];
+
+  // JEE colleges
+  if (jeeRank) {
+    JEE_COLLEGES.forEach(col => {
+      if (col.type === "BITS" && bitsatScore) return;
+      col.branches.forEach(br => {
+        if (!topIds.has(br.id)) return;
+        const isNIT = col.type === "NIT";
+        const isBITS = col.type === "BITS";
+        const bi = BRANCH_DATA.find(b => b.id === br.id);
+
+        if (isNIT) {
+          // Emit one row per applicable quota
+          nitQuotasForCollege(col.state).forEach(q => {
+            const closeRank = nitCloseRank(br.rank, q);
+            const chance = rankChance(jeeRank, closeRank);
+            const gTag = gender === "female" ? "/F" : "";
+            allRows.push({
+              college:col.name, type:col.type, state:col.state,
+              via:"jee", viaLabel:"JEE Main",
+              branch:bi?bi.name:br.id, branchId:br.id,
+              prog:"B.E.",
+              cutoff:`${closeRank.toLocaleString()} [${q}${gTag}]`,
+              sortKey:closeRank, chance,
+              home:homeState && col.state === homeState
+            });
+          });
+        } else {
+          const closeRank = Math.round(br.rank * CAT_MULT[jeeCat]);
+          const chance = rankChance(jeeRank, closeRank);
+          allRows.push({
+            college:col.name, type:col.type, state:col.state,
+            via:isBITS?"bits":"jee",
+            viaLabel:isBITS?"BITSAT ⓘ":"JEE Main",
+            branch:bi?bi.name:br.id, branchId:br.id,
+            prog:"B.E.",
+            cutoff:isBITS?"~"+closeRank.toLocaleString()+" equiv.":closeRank.toLocaleString(),
+            sortKey:closeRank, chance,
+            home:homeState && col.state === homeState
+          });
+        }
+      });
+    });
+  }
+
+  // BITS (by BITSAT score) — always included regardless of dream filter
+  if (bitsatScore) {
+    BITS_COLLEGES.forEach(col => {
+      col.branches.forEach(br => {
+        // Filter by program preference
+        if (br.prog === "MSc" && progPref === "be")   return;
+        if (br.prog === "BE"  && progPref === "msc")  return;
+        if (!topIds.has(br.id)) return;
+        const chance = bitsChance(bitsatScore, br.score);
+        const bi = BRANCH_DATA.find(b => b.id === br.id);
+        allRows.push({
+          college:col.name, type:col.type, state:col.state,
+          via:"bits", viaLabel:"BITSAT",
+          branch: br.label || (bi ? bi.name : br.id), branchId:br.id,
+          prog: br.prog === "MSc" ? "M.Sc. Integrated" : "B.E.",
+          cutoff:br.score+"+ (2025-26)",
+          sortKey:400-br.score, chance,
+          home:false,
+          bitsExplicit: true
+        });
+      });
+    });
+  }
+
+  // KCET
+  if (kcetRank) {
+    KCET_COLLEGES.forEach(col => {
+      col.branches.forEach(br => {
+        if (!topIds.has(br.id)) return;
+        const closeRank = Math.round(br.rank * KCET_CAT_MULT[kcetCat]);
+        const chance = rankChance(kcetRank, closeRank);
+        const bi = BRANCH_DATA.find(b => b.id === br.id);
+        allRows.push({
+          college:col.name, type:col.type, state:col.state,
+          via:"kcet", viaLabel:"KCET",
+          branch:bi?bi.name:br.id, branchId:br.id,
+          cutoff:closeRank.toLocaleString()+" rank",
+          prog:"B.E.", sortKey:closeRank, chance, home:true
+        });
+      });
+    });
+  }
+
+  renderBranches(branchScores, interests);
+  buildSummary(allRows);
+  applyFilters();
+  buildTips(jeeRank, jeeCat, homeState, advRank, bitsatScore, kcetRank, kcetCat);
+
+  // Warn if JEE rank missing — IIT/NIT/IIIT results won't show
+  const jeeNotice = document.getElementById("jeeNotice");
+  if (!jeeRank) {
+    jeeNotice.style.display = "block";
+  } else {
+    jeeNotice.style.display = "none";
+  }
+
+  document.getElementById("results").style.display = "block";
+  document.getElementById("results").scrollIntoView({behavior:"smooth"});
+}
+
+// ─── Render branches ──────────────────────────────────────────────────────────
+function renderBranches(branches, interests) {
+  document.getElementById("branchGrid").innerHTML = branches.map(b => `
+    <div class="branch-card">
+      <div class="top-bar" style="width:${b.score}%;background:linear-gradient(90deg,${b.color},${b.color}88)"></div>
+      <h3>${b.name}</h3>
+      ${interests.length > 0 ? `<div class="match" style="color:${b.color}">▲ ${b.score}% match</div>` : ''}
+      <p>${b.desc}</p>
+      <div class="scope">📈 ${b.scope}</div>
+      <div class="tags">${b.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+// ─── Summary ──────────────────────────────────────────────────────────────────
+function buildSummary(rows) {
+  const c={safe:0,good:0,reach:0,dream:0};
+  rows.forEach(r => c[r.chance]++);
+  document.getElementById("summaryStrip").innerHTML = `
+    <div class="stat-pill" style="background:rgba(76,175,135,.1);border-color:rgba(76,175,135,.3);color:var(--green)">✅ Safe — ${c.safe}</div>
+    <div class="stat-pill" style="background:rgba(108,99,255,.1);border-color:rgba(108,99,255,.3);color:#a09cff">🎯 Good — ${c.good}</div>
+    <div class="stat-pill" style="background:rgba(255,200,87,.1);border-color:rgba(255,200,87,.3);color:var(--warn)">⚡ Reach — ${c.reach}</div>
+    <div class="stat-pill" style="background:rgba(255,101,132,.1);border-color:rgba(255,101,132,.3);color:var(--danger)">🔴 Dream — ${c.dream}</div>
+    <div class="stat-pill" style="border-color:var(--border);color:var(--muted)">${c.safe+c.good+c.reach} reachable options</div>`;
+}
+
+// ─── Tier lookup ─────────────────────────────────────────────────────────────
+const COLLEGE_TIERS = {
+  // IIT
+  "IIT Bombay":1,"IIT Delhi":1,"IIT Madras":1,"IIT Kanpur":1,
+  "IIT Kharagpur":1,"IIT Roorkee":1,"IIT Guwahati":1,"IIT Bombay (Dual)":1,
+  "IIT Hyderabad":2,"IIT BHU (Varanasi)":2,"IIT Indore":2,"IIT Gandhinagar":2,
+  "IIT Jodhpur":2,"IIT Patna":2,"IIT Tirupati":2,"IIT Dhanbad (ISM)":2,
+  "IIT Ropar":2,"IIT Mandi":2,
+  "IIT Palakkad":3,"IIT Jammu":3,"IIT Bhilai":3,"IIT Dharwad":3,"IIT Goa":3,
+  // NIT
+  "NIT Trichy":1,"NIT Warangal":1,"NIT Surathkal (NITK)":1,"NIT Calicut":1,"NIT Rourkela":1,
+  "MNIT Jaipur":2,"NIT Allahabad (MNNIT)":2,"VNIT Nagpur":2,"NIT Kurukshetra":2,
+  "SVNIT Surat":2,"MANIT Bhopal":2,"NIT Delhi":2,"NIT Hamirpur":2,
+  "NIT Silchar":2,"NIT Durgapur":2,"NIT Jamshedpur":2,"NIT Raipur":2,
+  "NIT Patna":3,"NIT Srinagar (J&K)":3,"NIT Goa":3,"NIT Puducherry":3,
+  "NIT AP (Tadepalligudem)":3,"NIT Uttarakhand":3,"NIT Agartala":3,
+  "NIT Manipur":3,"NIT Sikkim":3,"NIT Meghalaya":3,"NIT Mizoram":3,
+  "NIT Nagaland":3,"NIT Arunachal Pradesh":3,
+  // IIIT
+  "IIIT Hyderabad":1,"IIIT Bangalore (IIITB)":1,"IIIT Delhi (IIIT-D)":1,
+  "IIIT Allahabad":2,"IIIT Chennai":2,"IIIT Vadodara":2,"IIIT Lucknow":2,
+  "IIIT Pune":2,"IIIT Kota":2,"IIIT Guwahati":2,"IIIT Dharwad":2,"IIIT Sri City":2,
+  "IIIT Nagpur":3,"IIIT Kurnool":3,"IIIT Kalyani":3,"IIIT Ranchi":3,
+  "IIIT Sonepat":3,"IIIT Una":3,"IIIT Bhagalpur":3,"IIIT Bhopal":3,
+};
+function getCollegeTier(name) { return COLLEGE_TIERS[name] || null; }
+function getCheckedTiers(grp) {
+  return [...document.querySelectorAll(`input[data-grp="${grp}"]:checked`)]
+    .map(el => parseInt(el.dataset.tier));
+}
+
+// ─── Apply filters ────────────────────────────────────────────────────────────
+function applyFilters() {
+  // ── Sort: chance bucket → type priority within each bucket → cutoff ──
+  // This mixes all college types naturally: safe options from IIT/NIT/BITS/KCET
+  // appear together, then good options, then reach — type priority breaks ties.
+  allRows.sort((a, b) =>
+    chanceOrder[a.chance] - chanceOrder[b.chance] ||
+    typeWeight(a.type)    - typeWeight(b.type)    ||
+    a.sortKey             - b.sortKey
+  );
+
+  const visibleChances = new Set(
+    [...document.querySelectorAll(".chance-filter:checked")].map(el => el.value)
+  );
+  const iitTiers  = getCheckedTiers("iit");
+  const nitTiers  = getCheckedTiers("nit");
+  const iiitTiers = getCheckedTiers("iiit");
+
+  let rows = allRows.filter(r => {
+    // Chance filter
+    if (!visibleChances.has(r.chance)) return false;
+    // Tier filter for IIT/NIT/IIIT
+    const tier = getCollegeTier(r.college);
+    if (tier && r.type === "IIT"  && !iitTiers.includes(tier))  return false;
+    if (tier && r.type === "NIT"  && !nitTiers.includes(tier))  return false;
+    if (tier && r.type === "IIIT" && !iiitTiers.includes(tier)) return false;
+    return true;
+  });
+  if (currentTier !== "all") rows = rows.filter(r => r.type === currentTier);
+
+  lastFilteredRows = rows;
+  document.getElementById("collegeCount").textContent = `${rows.length} options`;
+
+  if (!rows.length) {
+    document.getElementById("collegeTable").innerHTML =
+      `<tr><td colspan="7"><div class="empty">🔍 No matches. Try "All" filter or tick "Show dream schools".</div></td></tr>`;
+    return;
+  }
+
+  const chanceLabel={safe:"✅ Safe",good:"🎯 Good",reach:"⚡ Reach",dream:"🔴 Dream"};
+  const chanceClass={safe:"c-safe",good:"c-good",reach:"c-reach",dream:"c-dream"};
+  const tc={IIT:"t-IIT",NIT:"t-NIT",IIIT:"t-IIIT",BITS:"t-BITS",KCET:"t-KCET",State:"t-State",TopPrivate:"t-TopPrivate"};
+
+  document.getElementById("collegeTable").innerHTML = rows.slice(0,200).map((r,i) => `
+    <tr>
+      <td style="color:var(--muted);width:32px">${i+1}</td>
+      <td>
+        <strong>${r.college}</strong>${(()=>{const t=getCollegeTier(r.college);return t?`<span class="tbadge tb${t}">T${t}</span>`:''})()}
+        ${r.home?` <span style="font-size:.62rem;padding:2px 5px;background:rgba(0,212,170,.1);color:var(--accent2);border-radius:3px">Home State</span>`:''}
+        <br><span style="font-size:.68rem;color:var(--muted)">${r.state}</span>
+      </td>
+      <td><span class="type-badge ${tc[r.type]||'t-TopPrivate'}">${r.type}</span></td>
+      <td><span class="exam-src s-${r.via}">${r.viaLabel}</span></td>
+      <td style="white-space:nowrap">
+        ${r.prog === "M.Sc. Integrated"
+          ? `<span style="font-size:.65rem;padding:2px 7px;border-radius:4px;background:rgba(232,67,147,.12);color:#e84393;font-weight:600">M.Sc. Int.</span>`
+          : `<span style="font-size:.65rem;padding:2px 7px;border-radius:4px;background:rgba(108,99,255,.1);color:#a09cff;font-weight:600">B.E.</span>`
+        }
+      </td>
+      <td style="font-size:.78rem;max-width:190px">${r.branch}</td>
+      <td style="white-space:nowrap;font-size:.78rem">${r.cutoff}</td>
+      <td><span class="chance-pill ${chanceClass[r.chance]}">${chanceLabel[r.chance]}</span></td>
+    </tr>`).join('');
+}
+
+function filterTier(btn) {
+  document.querySelectorAll(".filter-btn[data-tier]").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentTier = btn.dataset.tier;
+  applyFilters();
+}
+
+// ─── Tips ─────────────────────────────────────────────────────────────────────
+function buildTips(jeeRank, jeeCat, homeState, advRank, bitsatScore, kcetRank, kcetCat) {
+  const catLabel={OPEN:"General",OBC:"OBC-NCL",SC:"SC",ST:"ST",EWS:"EWS"};
+  const tips=[];
+  if (jeeRank && !bitsatScore)
+    tips.push(`ℹ️ BITS entries are shown as <strong>JEE-equivalent reference only</strong> — actual admission is via BITSAT score. Enter your BITSAT score for accurate BITS matching.`);
+  if (advRank && advRank < 5000)
+    tips.push(`🌟 JEE Advanced rank <strong>${advRank.toLocaleString()}</strong> — strong IIT options. Check josaa.nic.in.`);
+  if (jeeRank && jeeRank <= 5000)
+    tips.push(`🎓 JEE Main rank <strong>${jeeRank.toLocaleString()}</strong> (${catLabel[jeeCat]}) — competitive for top NITs and IIITs.`);
+  if (bitsatScore >= 380) tips.push(`🔥 BITSAT <strong>${bitsatScore}</strong> — highly competitive for B.E. CS/ECE at BITS Pilani (Pilani campus).`);
+  else if (bitsatScore >= 340) tips.push(`📡 BITSAT <strong>${bitsatScore}</strong> — solid for B.E. at BITS Goa and Hyderabad. M.Sc. Integrated programmes at Pilani are also within reach.`);
+  else if (bitsatScore >= 295) tips.push(`📌 BITSAT <strong>${bitsatScore}</strong> — B.E. options are limited but M.Sc. Integrated at BITS Goa/Hyderabad are accessible. Switch to "B.E. + M.Sc." preference to see those.`);
+  else if (bitsatScore > 0) tips.push(`📌 BITSAT <strong>${bitsatScore}</strong> — consider retaking BITSAT or exploring M.Sc. Integrated programmes (cutoffs start ~258 at Hyderabad).`);
+  if (bitsatScore > 0) tips.push(`ℹ️ <strong>BITS M.Sc. Integrated</strong> is a 5-year programme. Many students do a Dual Degree (B.E. + M.Sc.) which requires higher scores. All BITS results are shown regardless of the dream filter.`);
+  if (kcetRank && kcetRank <= 2000) tips.push(`🌟 KCET rank <strong>${kcetRank.toLocaleString()}</strong> — excellent access to RVCE, BMSCE, MSRIT.`);
+  else if (kcetRank) tips.push(`🏫 KCET rank <strong>${kcetRank.toLocaleString()}</strong> — verify at kea.kar.nic.in.`);
+  if (homeState) tips.push(`🏠 <strong>${homeState}</strong> home state colleges are highlighted. State quota may give additional advantage.`);
+  tips.push(`⚖️ Results are sorted by: <strong>Chance → Your weightage priority → Cutoff</strong>. Drag the priority chips to reorder.`);
+  tips.push(`⚠️ <strong>Disclaimer:</strong> All cutoffs are approximate based on historical JoSAA / BITSAT / KEA data. Verify on official portals before applying.`);
+  document.getElementById("tipBox").innerHTML = tips.map(t=>`<div style="margin-bottom:5px">• ${t}</div>`).join('');
+}
+
+// ─── Reset ────────────────────────────────────────────────────────────────────
+function resetForm() {
+  ["rank","advRank","bitsatScore","kcetRank"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("category").value = "OPEN";
+  document.getElementById("state").value = "";
+  document.getElementById("gender").value = "gender-neutral";
+  document.getElementById("quotaOS").checked = true;
+  document.getElementById("quotaHS").checked = false;
+  document.getElementById("kcetCategory").value = "GM";
+  document.querySelectorAll(".chance-filter").forEach(cb => { cb.checked = true; });
+  activeInterests.clear();
+  document.querySelectorAll(".interest-chip").forEach(c => c.classList.remove("active"));
+  document.getElementById("results").style.display = "none";
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+// ─── Download Excel ───────────────────────────────────────────────────────────
+function downloadExcel() {
+  if (typeof XLSX === "undefined") { alert("Excel library not loaded yet — please wait a moment and try again."); return; }
+  if (!lastFilteredRows.length) { alert("No results to export. Run a search first."); return; }
+
+  const wb = XLSX.utils.book_new();
+  const chanceLabel = { safe:"Safe", good:"Good Chance", reach:"Reach", dream:"Dream" };
+
+  // ── Sheet 1: Results ──
+  const headers = ["#","College","State","Type","Tier","Via Exam","Program","Branch","Cutoff","Chance"];
+  const resultRows = lastFilteredRows.slice(0, 500).map((r, i) => [
+    i + 1,
+    r.college,
+    r.state,
+    r.type,
+    getCollegeTier(r.college) ? "T" + getCollegeTier(r.college) : "-",
+    r.viaLabel || "-",
+    r.prog || "B.E.",
+    r.branch,
+    r.cutoff,
+    chanceLabel[r.chance] || r.chance,
+  ]);
+  const ws1 = XLSX.utils.aoa_to_sheet([headers, ...resultRows]);
+  ws1["!cols"] = [
+    {wch:4},{wch:42},{wch:18},{wch:10},{wch:5},
+    {wch:12},{wch:18},{wch:38},{wch:22},{wch:13}
+  ];
+  // Bold header row
+  headers.forEach((_, ci) => {
+    const cell = XLSX.utils.encode_cell({r:0, c:ci});
+    if (!ws1[cell]) return;
+    ws1[cell].s = { font:{ bold:true }, fill:{ fgColor:{ rgb:"1A1D27" } } };
+  });
+  XLSX.utils.book_append_sheet(wb, ws1, "College Results");
+
+  // ── Sheet 2: Search Profile ──
+  const progPref = document.querySelector('input[name="progType"]:checked')?.value || "-";
+  const quotas = [
+    document.getElementById("quotaOS").checked ? "Other State (OS)" : "",
+    document.getElementById("quotaHS").checked ? "Home State (HS)" : ""
+  ].filter(Boolean).join(" + ") || "-";
+
+  const profileData = [
+    ["Engineering College Recommender — Search Profile"],
+    [],
+    ["Field", "Value"],
+    ["JEE Main Rank (CRL)", document.getElementById("rank").value || "-"],
+    ["JEE Advanced Rank",   document.getElementById("advRank").value || "-"],
+    ["Category",            document.getElementById("category").value],
+    ["Home State",          document.getElementById("state").value || "-"],
+    ["Gender",              document.getElementById("gender").value === "female" ? "Female (supernumerary)" : "Gender Neutral"],
+    ["NIT Quota",           quotas],
+    ["BITSAT Score",        document.getElementById("bitsatScore").value || "-"],
+    ["KCET Rank",           document.getElementById("kcetRank").value || "-"],
+    ["KCET Category",       document.getElementById("kcetCategory").value],
+    ["Interests",           [...activeInterests].join(", ") || "None selected"],
+    ["Program Preference",  progPref === "be" ? "B.E. only" : progPref === "msc" ? "M.Sc. Integrated preferred" : "B.E. + M.Sc. Integrated"],
+    ["College Priority",    weightageOrder.map((t,i) => `${i+1}. ${t}`).join("  →  ")],
+    [],
+    ["Results Exported",    lastFilteredRows.length],
+    ["Export Date",         new Date().toLocaleDateString("en-IN", {day:"2-digit",month:"short",year:"numeric"})],
+    [],
+    ["Source","Cutoff data: JoSAA (IITs/NITs/IIITs), admissions.bits-pilani.ac.in (BITS), kea.kar.nic.in (KCET)"],
+    ["Disclaimer","All cutoffs are approximate. Verify on official portals before applying."],
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(profileData);
+  ws2["!cols"] = [{wch:26},{wch:55}];
+  XLSX.utils.book_append_sheet(wb, ws2, "Search Profile");
+
+  const filename = `College_Recommendations_${new Date().toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb, filename);
+}
+
+// Tier checkbox live update
+document.querySelectorAll('#tierFilter input[type=checkbox]').forEach(cb => {
+  cb.addEventListener('change', () => { if (allRows.length) applyFilters(); });
+});
+
+// ─── Download Excel ───────────────────────────────────────────────────────────
+function downloadExcel() {
+  if (!allRows.length) { alert("Run a search first to generate results."); return; }
+
+  // Collect currently visible rows (same filter as table)
+  const visibleChances = new Set(
+    [...document.querySelectorAll(".chance-filter:checked")].map(el => el.value)
+  );
+  const iitTiers  = getCheckedTiers("iit");
+  const nitTiers  = getCheckedTiers("nit");
+  const iiitTiers = getCheckedTiers("iiit");
+  let rows = allRows.filter(r => {
+    if (!visibleChances.has(r.chance)) return false;
+    const tier = getCollegeTier(r.college);
+    if (tier && r.type === "IIT"  && !iitTiers.includes(tier))  return false;
+    if (tier && r.type === "NIT"  && !nitTiers.includes(tier))  return false;
+    if (tier && r.type === "IIIT" && !iiitTiers.includes(tier)) return false;
+    return true;
+  });
+  if (currentTier !== "all") rows = rows.filter(r => r.type === currentTier);
+
+  // ── Sheet 1: College results ──
+  const chanceLabel = { safe:"✅ Safe", good:"🎯 Good", reach:"⚡ Reach", dream:"🔴 Dream" };
+  const resultsData = rows.map((r, i) => ({
+    "#":              i + 1,
+    "College":        r.college,
+    "State":          r.state,
+    "Type":           r.type,
+    "Tier":           getCollegeTier(r.college) ? `T${getCollegeTier(r.college)}` : "-",
+    "Via Exam":       r.viaLabel,
+    "Program":        r.prog || "B.E.",
+    "Branch":         r.branch,
+    "Cutoff":         r.cutoff,
+    "Chance":         chanceLabel[r.chance] || r.chance,
+    "Home State":     r.home ? "Yes" : "No",
+  }));
+
+  // ── Sheet 2: Search profile ──
+  const rank      = document.getElementById("rank").value;
+  const advRank   = document.getElementById("advRank").value;
+  const category  = document.getElementById("category").value;
+  const state     = document.getElementById("state").value;
+  const gender    = document.getElementById("gender").value;
+  const bitsat    = document.getElementById("bitsatScore").value;
+  const kcet      = document.getElementById("kcetRank").value;
+  const quotaOS   = document.getElementById("quotaOS").checked ? "OS" : "";
+  const quotaHS   = document.getElementById("quotaHS").checked ? "HS" : "";
+  const interests = [...activeInterests].join(", ");
+  const profileData = [
+    { "Parameter": "JEE Main Rank (CRL)", "Value": rank || "-" },
+    { "Parameter": "JEE Advanced Rank",   "Value": advRank || "-" },
+    { "Parameter": "Category",            "Value": category },
+    { "Parameter": "Home State",          "Value": state || "-" },
+    { "Parameter": "Gender",              "Value": gender },
+    { "Parameter": "NIT Quota",           "Value": [quotaOS, quotaHS].filter(Boolean).join(" + ") || "OS" },
+    { "Parameter": "BITSAT Score",        "Value": bitsat || "-" },
+    { "Parameter": "KCET Rank",           "Value": kcet || "-" },
+    { "Parameter": "Interests",           "Value": interests || "All" },
+    { "Parameter": "Total Results",       "Value": rows.length },
+    { "Parameter": "Generated On",        "Value": new Date().toLocaleString() },
+  ];
+
+  // ── Build workbook ──
+  const wb = XLSX.utils.book_new();
+
+  const ws1 = XLSX.utils.json_to_sheet(resultsData);
+  // Column widths
+  ws1["!cols"] = [
+    {wch:4},{wch:38},{wch:18},{wch:10},{wch:6},{wch:12},
+    {wch:14},{wch:38},{wch:18},{wch:12},{wch:10}
+  ];
+  XLSX.utils.book_append_sheet(wb, ws1, "College Results");
+
+  const ws2 = XLSX.utils.json_to_sheet(profileData);
+  ws2["!cols"] = [{wch:22},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws2, "Search Profile");
+
+  XLSX.writeFile(wb, `Engineering_Recommender_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// Init
+initDrag();
+</script>
+</body>
+</html>
